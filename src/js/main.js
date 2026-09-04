@@ -1,8 +1,12 @@
 // State
 let channelsData = [];
 let originalChannelsData = [];
+let filteredData = [];
 let searchTimeout = null;
 let currentLanguage = 'en';
+let currentPage = 1;
+let perPage = 50;
+let statusFilter = 'all';
 
 // Translations
 const translations = {
@@ -82,6 +86,19 @@ function initEventListeners() {
             e.preventDefault();
             searchInput.blur();
         }
+    });
+
+    // Filter listeners
+    document.getElementById('statusFilter').addEventListener('change', (e) => {
+        statusFilter = e.target.value;
+        currentPage = 1;
+        applyFilters();
+    });
+
+    document.getElementById('perPageFilter').addEventListener('change', (e) => {
+        perPage = parseInt(e.target.value);
+        currentPage = 1;
+        applyFilters();
     });
 
     // Language button
@@ -217,8 +234,9 @@ function loadChannelsData() {
         .then(data => {
             channelsData = sortChannelsByLink(data);
             originalChannelsData = JSON.parse(JSON.stringify(channelsData));
+            filteredData = JSON.parse(JSON.stringify(channelsData));
             updateChannelCount(originalChannelsData.length);
-            renderTable();
+            applyFilters();
         })
         .catch(err => {
             console.error(err);
@@ -226,12 +244,41 @@ function loadChannelsData() {
         });
 }
 
-// Render table
+// Apply filters and search
+function applyFilters() {
+    const term = document.getElementById('searchInput').value.trim().toLowerCase();
+
+    filteredData = originalChannelsData.filter(ch => {
+        // Status filter
+        if (statusFilter !== 'all' && ch.status !== statusFilter) return false;
+
+        // Search filter
+        if (term) {
+            const terms = term.includes(',') ? term.split(',').map(t => t.trim()).filter(t => t) : [term];
+            return terms.every(t => {
+                const nameMatch = ch.name.toLowerCase().includes(t);
+                const linkMatch = ch.link.toLowerCase().includes(t);
+                const descMatch = (ch.description || '').toLowerCase().includes(t);
+                const tagMatch = (ch.tags || []).some(tag => tag.toLowerCase().includes(t));
+                return nameMatch || linkMatch || descMatch || tagMatch;
+            });
+        }
+        return true;
+    });
+
+    filteredData = sortChannelsByLink(filteredData);
+    currentPage = 1;
+    renderTable();
+    updatePagination();
+    updateSearchStats();
+}
+
+// Render table (current page only)
 function renderTable() {
     const t = translations[currentLanguage];
     const tableBody = document.getElementById('tableBody');
 
-    if (!channelsData.length) {
+    if (!filteredData.length) {
         tableBody.innerHTML = `
             <div class="channel-row" style="justify-content:center;padding:60px 20px;">
                 <span style="color:var(--text-muted)">${t.noChannels}</span>
@@ -240,7 +287,12 @@ function renderTable() {
         return;
     }
 
-    tableBody.innerHTML = channelsData.map((ch, idx) => {
+    const start = (currentPage - 1) * perPage;
+    const end = start + perPage;
+    const pageData = filteredData.slice(start, end);
+
+    tableBody.innerHTML = pageData.map((ch, idx) => {
+        const realIdx = start + idx;
         const statusClass = ch.status === 'Active' ? 'status-active' : ch.status === 'Inactive' ? 'status-inactive' : 'status-unknown';
         const statusLabel = ch.status === 'Active' ? t.statusLabels.active : ch.status === 'Inactive' ? t.statusLabels.inactive : t.statusLabels.unknown;
 
@@ -257,7 +309,7 @@ function renderTable() {
             return `<span class="${tagClass}">${escapeHtml(tag)}</span>`;
         }).join('');
 
-        const moreTagsBtn = extraTags > 0 ? `<span class="tag more-tags" onclick="showAllTags(${idx})">+${extraTags}</span>` : '';
+        const moreTagsBtn = extraTags > 0 ? `<span class="tag more-tags" onclick="showAllTags(${realIdx})">+${extraTags}</span>` : '';
 
         const linkDisplay = ch.link.includes('t.me/') ? '@' + ch.link.split('t.me/')[1] : ch.link;
 
@@ -278,40 +330,70 @@ function renderTable() {
     }).join('');
 }
 
+// Update pagination
+function updatePagination() {
+    const pagination = document.getElementById('pagination');
+    const totalPages = Math.ceil(filteredData.length / perPage);
+
+    if (totalPages <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+
+    let html = '';
+
+    // Prev button
+    html += `<button class="pagination-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">
+        <i class="bi bi-chevron-left"></i>
+    </button>`;
+
+    // Page numbers
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) {
+        html += `<button class="pagination-btn" onclick="goToPage(1)">1</button>`;
+        if (startPage > 2) html += `<span class="pagination-ellipsis">...</span>`;
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<span class="pagination-ellipsis">...</span>`;
+        html += `<button class="pagination-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+    }
+
+    // Next button
+    html += `<button class="pagination-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">
+        <i class="bi bi-chevron-right"></i>
+    </button>`;
+
+    pagination.innerHTML = html;
+}
+
+// Go to page
+function goToPage(page) {
+    const totalPages = Math.ceil(filteredData.length / perPage);
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    renderTable();
+    updatePagination();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 // Search handler
 function handleSearch() {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
-        const term = document.getElementById('searchInput').value.trim().toLowerCase();
-        filterChannels(term);
+        applyFilters();
     }, 200);
-}
-
-// Filter channels
-function filterChannels(term) {
-    if (!term) {
-        channelsData = JSON.parse(JSON.stringify(originalChannelsData));
-        channelsData = sortChannelsByLink(channelsData);
-        renderTable();
-        updateSearchStats();
-        return;
-    }
-
-    const terms = term.includes(',') ? term.split(',').map(t => t.trim()).filter(t => t) : [term];
-
-    channelsData = originalChannelsData.filter(ch => {
-        return terms.every(t => {
-            const nameMatch = ch.name.toLowerCase().includes(t);
-            const linkMatch = ch.link.toLowerCase().includes(t);
-            const descMatch = (ch.description || '').toLowerCase().includes(t);
-            const tagMatch = (ch.tags || []).some(tag => tag.toLowerCase().includes(t));
-            return nameMatch || linkMatch || descMatch || tagMatch;
-        });
-    });
-
-    channelsData = sortChannelsByLink(channelsData);
-    renderTable();
-    updateSearchStats();
 }
 
 // Update channel count
@@ -326,8 +408,8 @@ function updateSearchStats() {
     const searchStats = document.getElementById('searchStats');
     const term = document.getElementById('searchInput').value.trim();
 
-    if (term) {
-        searchStats.textContent = t.showingResults.replace('{shown}', channelsData.length).replace('{total}', originalChannelsData.length);
+    if (term || statusFilter !== 'all') {
+        searchStats.textContent = t.showingResults.replace('{shown}', filteredData.length).replace('{total}', originalChannelsData.length);
     } else {
         searchStats.textContent = '';
     }
@@ -349,7 +431,7 @@ function sortChannelsByLink(channels) {
 
 // Show all tags in modal
 function showAllTags(channelIdx) {
-    const tags = channelsData[channelIdx].tags || [];
+    const tags = originalChannelsData[channelIdx].tags || [];
     const uniqueTags = [...new Set(tags)].filter(tag => tag.toLowerCase() !== 'sponsored');
 
     const container = document.getElementById('tagsContainer');

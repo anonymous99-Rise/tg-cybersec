@@ -46,14 +46,39 @@
         </div>
     </header>
 
-    <!-- Search -->
+    <!-- Search & Filter -->
     <section class="search-section">
         <div class="container">
             <div class="search-wrapper">
                 <i class="bi bi-search search-icon"></i>
                 <input type="text" id="searchInput" class="search-input" placeholder="Search by name, tag, or keyword...">
             </div>
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Status:</label>
+                    <select id="statusFilter" class="filter-select">
+                        <option value="all">All</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Per page:</label>
+                    <select id="perPageFilter" class="filter-select">
+                        <option value="20">20</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
             <div class="search-stats" id="searchStats"></div>
+        </div>
+    </section>
+
+    <!-- Pagination -->
+    <section class="pagination-section">
+        <div class="container">
+            <div class="pagination" id="pagination"></div>
         </div>
     </section>
 
