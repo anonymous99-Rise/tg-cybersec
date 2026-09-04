@@ -40,53 +40,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let channelsData = [];
     let originalChannelsData = [];
     let searchTimeout = null;
-    let currentLanguage = 'fa'; // Default language is Persian
+    let currentLanguage = 'en'; // Default language
     
     // Translations for UI elements
     const translations = {
-        fa: {
-            dir: 'rtl',
-            languageButton: 'Language',
-            channelCount: 'تعداد: {count} کانال',
-            languageModalTitle: 'Select Language',
-            closeButton: 'بستن',
-            pageTitle: 'کانال‌های تلگرام مرتبط با امنیت سایبری',
-            searchPlaceholder: 'مثال: iranian, osint',
-            noResults: 'هیچ نتیجه‌ای برای "{searchTerm}" یافت نشد.',
-            noChannels: 'هیچ کانالی یافت نشد.',
-            loadError: 'خطا در بارگذاری داده‌ها. لطفاً صفحه را مجدداً بارگذاری کنید.',
-            loading: 'در حال بارگذاری',
-            errorTitle: 'خطا',
-            successTitle: 'موفق',
-            githubButton: 'مشاهده در گیت‌هاب',
-            supportButton: 'حمایت',
-            scamminderTooltip: 'تشخیص اعتبار وب‌سایت‌ها با هوش مصنوعی',
-            tableHeaders: {
-                name: 'نام کانال',
-                link: 'لینک',
-                status: 'وضعیت',
-                tags: 'تگ‌ها',
-                description: 'توضیحات'
-            },
-            statusLabels: {
-                active: 'فعال',
-                inactive: 'غیرفعال',
-                unknown: 'نامشخص'
-            },
-            // Support modal translations
-            supportModalTitle: 'راه‌های حمایت',
-            supportOptions: {
-                contribute: 'مشارکت در به‌روزرسانی',
-                star: 'ستاره در گیت‌هاب',
-                feedback: 'ارسال بازخورد',
-                // donate: 'حمایت مالی',
-                sponsor: 'حمایت رسمی'
-            },
-            // Sponsorship modal translations
-            sponsorshipModalTitle: 'حمایت رسمی',
-            sponsorshipInfo: 'اگه کانال تلگرام دارید، می‌تونید با اسپانسر شدن، نام کانال خودتون رو در ردیف اول جدول و همچنین نام برندتون رو به عنوان حامی رسمی، در وبسایت در معرض نمایش قرار بدید.',
-            contactMe: 'ارتباط با من'
-        },
         en: {
             dir: 'ltr',
             languageButton: 'Language',
@@ -116,62 +73,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 inactive: 'Inactive',
                 unknown: 'Unknown'
             },
-            // Support modal translations
             supportModalTitle: 'Support Options',
             supportOptions: {
                 contribute: 'Contribute to Updates',
                 star: 'Star on GitHub',
                 feedback: 'Send Feedback',
-                // donate: 'Donate',
                 sponsor: 'Become a Sponsor'
             },
-            // Sponsorship modal translations
             sponsorshipModalTitle: 'Sponsorship Information',
             sponsorshipInfo: 'If you have a Telegram channel related to cybersecurity, you can become a sponsor to have your channel displayed at the top of the table and your brand name shown as a sponsor in the website footer.',
             contactMe: 'Contact Me'
-        },
-        ru: {
-            dir: 'ltr',
-            languageButton: 'Язык',
-            channelCount: 'Каналы: {count} каналов',
-            languageModalTitle: 'Выбрать язык',
-            closeButton: 'Закрыть',
-            pageTitle: 'Репозиторий каналов Telegram по кибербезопасности',
-            searchPlaceholder: 'Blue, Red, OSINT, CTI, ...',
-            noResults: 'Результатов для "{searchTerm}" не найдено.',
-            noChannels: 'Каналы не найдены.',
-            loadError: 'Ошибка загрузки данных. Пожалуйста, перезагрузите страницу.',
-            loading: 'Загрузка',
-            errorTitle: 'Ошибка',
-            successTitle: 'Успех',
-            githubButton: 'Смотреть на GitHub',
-            supportButton: 'Поддержка',
-            scamminderTooltip: 'ИИ-детектор мошенничества',
-            tableHeaders: {
-                name: 'Название канала',
-                link: 'Ссылка',
-                status: 'Статус',
-                tags: 'Теги',
-                description: 'Описание'
-            },
-            statusLabels: {
-                active: 'Активен',
-                inactive: 'Неактивен',
-                unknown: 'Неизвестно'
-            },
-            // Support modal translations
-            supportModalTitle: 'Варианты поддержки',
-            supportOptions: {
-                contribute: 'Участвовать в обновлениях',
-                star: 'Поставить звезду на GitHub',
-                feedback: 'Отправить отзыв',
-                // donate: 'Пожертвовать',
-                sponsor: 'Стать спонсором'
-            },
-            // Sponsorship modal translations
-            sponsorshipModalTitle: 'Информация о спонсорстве',
-            sponsorshipInfo: 'Если у вас есть Telegram канал, связанный с кибербезопасностью, вы можете стать спонсором, чтобы ваш канал отображался в верхней части таблицы, а название вашего бренда было показано как спонсор в нижней части сайта.',
-            contactMe: 'Связаться со мной'
         },
         zh: {
             dir: 'ltr',
@@ -202,16 +113,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 inactive: '不活跃',
                 unknown: '未知'
             },
-            // Support modal translations
             supportModalTitle: '支持选项',
             supportOptions: {
                 contribute: '参与更新',
                 star: '在 GitHub 上加星标',
                 feedback: '发送反馈',
-                // donate: '捐赠',
                 sponsor: '成为赞助商'
             },
-            // Sponsorship modal translations
             sponsorshipModalTitle: '赞助信息',
             sponsorshipInfo: '如果您有与网络安全相关的Telegram频道，您可以成为赞助商，让您的频道显示在表格顶部，并在网站页脚显示您的品牌名称作为赞助商。',
             contactMe: '联系我'
@@ -275,22 +183,22 @@ document.addEventListener('DOMContentLoaded', function() {
         supportModal.hide();
         
         // Open GitHub contribution page in a new tab
-        window.open('https://github.com/mehrazino/tg-cybersec/edit/master/src/data/channels.md', '_blank');
+        window.open('https://github.com/anonymous99-Rise/tg-cybersec/edit/master/src/data/channels.md', '_blank');
     });
     
     // Star on GitHub button event listener
     document.querySelector('.support-option-star').addEventListener('click', function() {
-        window.open('https://github.com/mehrazino/tg-cybersec', '_blank');
+        window.open('https://github.com/anonymous99-Rise/tg-cybersec', '_blank');
     });
     
     // Feedback button event listener
     document.querySelector('.support-option-feedback').addEventListener('click', function() {
-        window.open('https://github.com/mehrazino/tg-cybersec/issues/new', '_blank');
+        window.open('https://github.com/anonymous99-Rise/tg-cybersec/issues/new', '_blank');
     });
     
     // Temporarily disabled
     /*document.querySelector('.support-option-donate').addEventListener('click', function() {
-        window.open('https://github.com/sponsors/mehrazino', '_blank');
+        window.open('https://github.com/sponsors/anonymous99-Rise', '_blank');
     });*/
     
     // Sponsor button event listener
@@ -389,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelector('#successToast .toast-header strong').textContent = t.successTitle;
         
         // Update tags modal title
-        document.getElementById('tagsModalLabel').textContent = 'تگ‌های کانال';
+        document.getElementById('tagsModalLabel').textContent = t.tableHeaders.tags;
         
         // Update tooltips to reflect new language
         initTooltips();

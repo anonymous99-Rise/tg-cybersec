@@ -24,7 +24,8 @@ jobs:
         from pathlib import Path
         import re
         import json
-        
+        from datetime import datetime, timezone
+
         def md_table_to_json(md_file):
             # Read Markdown file
             md_content = Path(md_file).read_text(encoding='utf-8')
@@ -108,6 +109,31 @@ jobs:
             json.dump(channels_data, json_file, ensure_ascii=False, indent=2)
             
         print(f"Converted channels.md to channels.json - {len(channels_data)} channels processed")
+
+        # Generate RSS feed
+        pub_date = datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
+        rss = f'''<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Telegram Cybersecurity Channels</title>
+    <link>https://anonymous99-Rise.github.io/tg-cybersec/</link>
+    <description>List of Telegram channels related to cybersecurity</description>
+    <language>en</language>
+    <lastBuildDate>{pub_date}</lastBuildDate>
+    <atom:link href="https://anonymous99-Rise.github.io/tg-cybersec/feed.xml" rel="self" type="application/rss+xml"/>
+'''
+        for ch in channels_data[:50]:
+            tags = ', '.join(ch.get('tags', []))
+            rss += f'''    <item>
+      <title>{ch['name']}</title>
+      <link>{ch['link']}</link>
+      <description>{ch.get('description', '')} | Tags: {tags}</description>
+    </item>
+'''
+        rss += '  </channel>\n</rss>'
+        with open('feed.xml', 'w', encoding='utf-8') as f:
+            f.write(rss)
+        print(f"Generated feed.xml with {len(channels_data)} channels")
         EOF
         
     - name: Configure Git
@@ -117,8 +143,8 @@ jobs:
         
     - name: Commit changes
       run: |
-        git add src/data/channels.json
-        git diff --staged --quiet || git commit -m "Auto-update channels.json from channels.md"
-        
+        git add src/data/channels.json feed.xml
+        git diff --staged --quiet || git commit -m "Auto-update channels.json and feed.xml from channels.md"
+
     - name: Push changes
       run: git push 
